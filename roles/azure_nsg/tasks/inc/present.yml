@@ -1,0 +1,6 @@
+---
+- name: "Creating NSG {{ azure_nsg_name }}"
+  azure_rm_securitygroup:
+    resource_group: "{{ azure_nsg_resourcegroup }}"
+    name: "{{ azure_nsg_name }}"
+    rules: "{{ azure_nsg_ruleslist }}"

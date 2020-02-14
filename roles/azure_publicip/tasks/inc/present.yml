@@ -1,0 +1,26 @@
+---
+
+- name: Create a public ip address
+  azure_rm_publicipaddress:
+    resource_group: "{{ azure_publicip_resourcegroup }}"
+    name: "{{ azure_publicip_name }}"
+    allocation_method: "{{ azure_publicip_allocmethod }}"
+    sku: "{{ azure_publicip_sku }}"
+
+- name: Retrieve public ip address informations
+  azure_rm_publicipaddress_info:
+    resource_group: "{{ azure_publicip_resourcegroup }}"
+    name: "{{ azure_publicip_name }}"
+  register: azure_publicip_infos
+
+- name: Create output
+  set_fact:
+    azure_publicip_output:
+      ip_address: "{{ azure_publicip_infos.publicipaddresses[0].ip_address }}"
+      id: "{{ azure_publicip_infos.publicipaddresses[0].id }}"
+      allocation_method: "{{ azure_publicip_infos.publicipaddresses[0].allocation_method }}"
+      tags: "{{ azure_publicip_infos.publicipaddresses[0].ip_tags }}"
+      location: "{{ azure_publicip_infos.publicipaddresses[0].location }}"
+      name: "{{ azure_publicip_infos.publicipaddresses[0].name }}"
+      sku: "{{ azure_publicip_infos.publicipaddresses[0].sku }}"
+      version: "{{ azure_publicip_infos.publicipaddresses[0].version }}"

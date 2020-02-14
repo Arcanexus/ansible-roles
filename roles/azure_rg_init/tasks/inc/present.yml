@@ -1,0 +1,37 @@
+---
+
+- name: "{{ RGName }} Resource Group {{ state }}"
+  azure_rm_resourcegroup:
+    name: "{{ RGName }}"
+    location: "{{ AZLocation }}"
+
+- name: "{{ VNetName }} VNET {{ state }}"
+  azure_rm_virtualnetwork:
+    resource_group: "{{ RGName }}"
+    name: "{{ VNetName }}"
+    address_prefixes_cidr:
+        - "{{ VNetCIDR }}"
+
+- name: Add subnet
+  azure_rm_subnet:
+    resource_group: "{{ RGName }}"
+    name: "{{ SubnetName }}"
+    address_prefix: "{{ SubnetCIDR }}"
+    virtual_network: "{{ VNetName }}"
+
+- name: Get facts of the subnet
+  azure_rm_subnet_info:
+    resource_group: "{{ RGName }}"
+    virtual_network_name: "{{ VNetName }}"
+    name: "{{ SubnetName }}"
+  register: SubnetInfos
+
+# - name: debug
+#   debug:
+#     msg: "{{ SubnetInfos.subnets[0].id }}"
+
+- name: Create output
+  set_fact:
+    azure_rg_init_output:
+      subnet_id: "{{ SubnetInfos.subnets[0].id }}"
+      

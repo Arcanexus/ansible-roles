@@ -1,0 +1,255 @@
+--- 
+- hosts: localhost
+  gather_facts: no
+  vars:
+    RGName: test-lb-1
+    
+    VNetName: test-lb-vnet-1
+    VNetCIDR: "10.1.0.0/16"
+
+    SubnetName: test-lb-subnet-1
+    
+    SGName: test-lb-sg-1
+    
+    VNicName: test-lb-vnic-
+
+    PublicIPName: test-lb-ip-1
+
+    AvSetName: test-lb-as-1
+    AvSetUpdateDomain: 5
+    AvSetFaultDomain: 3
+
+    LBName: test-lb-lb-1
+    LBRule: 
+      fromPort: 80
+      toPort: 80
+
+    sku: Basic
+
+    AZLocation: westeurope
+    AZState: present
+  
+  environment:
+    # ARCANEXUS
+    AZURE_SUBSCRIPTION_ID: 9aa8b7cf-152a-48c2-b469-90b508a130cf
+    AZURE_CLIENT_ID: a53e4707-19ee-4ccc-a46a-c6145d4dfbfe
+    AZURE_SECRET: aOYEVj]OM-n7o]3:72VS_/LEk??Ena8y
+    AZURE_TENANT: 58543b58-814e-4197-b896-3235f359b747
+  
+    # Engie
+    # AZURE_SUBSCRIPTION_ID: '0844ea84-7215-4829-ae82-541c7d37b798'
+    # AZURE_TENANT: "24139d14-c62c-4c47-8bdd-ce71ea1d50cf"
+    # AZURE_CLIENT_ID: "4d690c50-c399-465e-9d9c-1fe81f6d6b2d"
+    # AZURE_SECRET: "XOBsjY9x2vp7EN+szx8m7oEscZREvppT0eNExNq/ILo="
+
+  tasks:
+    - name: "{{ RGName }} Resource Group {{ AZState }}"
+      azure_rm_resourcegroup:
+        name: "{{ RGName }}"
+        state: "{{ AZState }}"
+        location: "{{ AZLocation }}"
+
+    - name: "{{ AvSetName }} AvailabilitySet {{ AZState }}"
+      azure_rm_availabilityset:
+        name: "{{ AvSetName }}"
+        location: "{{ AZLocation }}"
+        resource_group: "{{ RGName }}"
+        platform_update_domain_count: "{{ AvSetUpdateDomain }}"
+        platform_fault_domain_count: "{{ AvSetFaultDomain }}"
+        # sku: Aligned
+
+    - name: "{{ VNetName }} VNET {{ AZState }}"
+      azure_rm_virtualnetwork:
+        resource_group: "{{ RGName }}"
+        name: "{{ VNetName }}"
+        address_prefixes_cidr:
+            - "{{ VNetCIDR }}"
+
+    - name: Add subnet
+      azure_rm_subnet:
+        resource_group: "{{ RGName }}"
+        name: "{{ SubnetName }}"
+        address_prefix: "10.1.1.0/24"
+        virtual_network: "{{ VNetName }}"
+
+    - name: Get facts of the subnet
+      azure_rm_subnet_info:
+        resource_group: "{{ RGName }}"
+        virtual_network_name: "{{ VNetName }}"
+        name: "{{ SubnetName }}"
+      register: SubnetInfos
+
+    - name: debug
+      debug:
+        msg: "{{ SubnetInfos.subnets[0].id }}"
+
+    - name: Create Network Security Group that allows SSH and HTTP
+      azure_rm_securitygroup:
+        resource_group: "{{ RGName }}"
+        name: "{{ SGName }}"
+        rules:
+          - name: SSH
+            protocol: Tcp
+            destination_port_range: 22
+            access: Allow
+            priority: 1001
+            direction: Inbound
+          - name: HTTP
+            protocol: Tcp
+            destination_port_range: 80
+            access: Allow
+            priority: 1002
+            direction: Inbound
+
+    # - name: "{{ PublicIPName }} Public IP {{ AZState }}"
+    #   azure_rm_publicipaddress:
+    #     resource_group: "{{ RGName }}"
+    #     name: "{{ PublicIPName }}"
+    #     # allocation_method: static
+    #     # sku: standard
+    #     sku: "{{ sku }}"
+
+    - name: "{{ LBName }} Load Balancer {{ AZState }}"
+      azure_rm_loadbalancer:
+        resource_group: "{{ RGName }}"
+        name: "{{ LBName }}"
+        sku: "{{ sku | default('Basic') }}"
+        frontend_ip_configurations:
+          - name: public-ip-lb-1
+            # public_ip_address: "{{ PublicIPName }}"
+            subnet: "{{ SubnetInfos.subnets[0].id }}"
+        backend_address_pools:
+          - name: backendpool0
+        probes: 
+          - name: probe0
+            port: "{{ LBRule.toPort }}"
+        # inbound_nat_pools:
+        #   - name: inboundnatpool0
+        #     frontend_ip_configuration_name: frontendipconf0
+        #     protocol: Tcp
+        #     frontend_port_range_start: 80
+        #     frontend_port_range_end: 81
+        #     backend_port: 8080
+
+        load_balancing_rules:
+          - name: lbrule0
+            frontend_ip_configuration: public-ip-lb-1
+            backend_address_pool: backendpool0
+            frontend_port: "{{ LBRule.fromPort }}"
+            backend_port: "{{ LBRule.toPort }}"
+            probe: probe0
+
+        inbound_nat_rules:
+          - name: inboundnatrule0
+            backend_port: "22"
+            protocol: Tcp
+            frontend_port: "22"
+            frontend_ip_configuration: public-ip-lb-1
+
+    - name: Create a NIC1
+      azure_rm_networkinterface:
+        name: "{{ VNicName }}1"
+        resource_group: "{{ RGName }}"
+        subnet_name: "{{ SubnetName }}"
+        virtual_network: "{{ VNetName }}"
+        security_group:
+          name: "{{ SGName }}"
+        ip_configurations:
+          - name: ipconfig1
+            load_balancer_backend_address_pools:
+              - name: backendpool0
+                load_balancer: "{{ LBName }}"
+
+    - name: Create a NIC2
+      azure_rm_networkinterface:
+        name: "{{ VNicName }}2"
+        resource_group: "{{ RGName }}"
+        subnet_name: "{{ SubnetName }}"
+        virtual_network: "{{ VNetName }}"
+        security_group:
+          name: "{{ SGName }}"
+        ip_configurations:
+          - name: ipconfig1
+            load_balancer_backend_address_pools:
+              - name: backendpool0
+                load_balancer: "{{ LBName }}"
+
+    - name: Create a VM1
+      azure_rm_virtualmachine:
+        resource_group: "{{ RGName }}"
+        availability_set: "{{ AvSetName }}"
+        name: testvm001
+        vm_size: Standard_B2s
+        virtual_network_name: "{{ VNetName }}"
+        network_interfaces: "{{ VNicName }}1"
+        admin_username: nexus
+        ssh_password_enabled: false
+        ssh_public_keys:
+          - path: /home/nexus/.ssh/authorized_keys
+            key_data: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCoPz/yQPz/ZVliu0MAG5m/dJkM7je95B5fEHeJe2VZKjBjlS0YcWMqb5vhhsiUSUsNbE2bOqj3hyi12BEqg2sjkzgOqvJrE948uFYEHFUR0ocAwfFtGqWjVB137kCcNugR2y36hsrhnwk+1dxplRmFJPjGGghQbVtn2+lhmxl/SnLx/DO0jiyyJnANFij9icRcX7UFgBEViS/m43LOpXbuDRlY1QOqbQEPo9JVgJWlLau1C+lG4JgOFQXLpOjeYAZ7DiXUSvjo72wYtw2ep7bCAR+6plLjk3wMsN7bpxdnVJDuhtpCIm2wac7urP0VkyZ31qbmI9vq4sZc0/Acv/GN nexus@vm-ubuntu
+        image:
+          # offer: CentOS
+          # publisher: OpenLogic
+          # sku: '7.1'
+          # version: latest          
+          offer: UbuntuServer
+          publisher: Canonical
+          sku: '18.04-LTS'
+          version: latest
+        custom_data: |
+          #!/bin/bash
+          apt update
+          apt upgrade -y
+          apt install vim curl wget nginx -y
+          sed -i 's/nginx!/vm-1 !/g' /var/www/html/*
+
+    - name: Create a VM2
+      azure_rm_virtualmachine:
+        resource_group: "{{ RGName }}"
+        availability_set: "{{ AvSetName }}"
+        name: testvm002
+        vm_size: Standard_B2s
+        virtual_network_name: "{{ VNetName }}"
+        network_interfaces: "{{ VNicName }}2"
+        admin_username: nexus
+        ssh_password_enabled: false
+        ssh_public_keys:
+          - path: /home/nexus/.ssh/authorized_keys
+            key_data: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCoPz/yQPz/ZVliu0MAG5m/dJkM7je95B5fEHeJe2VZKjBjlS0YcWMqb5vhhsiUSUsNbE2bOqj3hyi12BEqg2sjkzgOqvJrE948uFYEHFUR0ocAwfFtGqWjVB137kCcNugR2y36hsrhnwk+1dxplRmFJPjGGghQbVtn2+lhmxl/SnLx/DO0jiyyJnANFij9icRcX7UFgBEViS/m43LOpXbuDRlY1QOqbQEPo9JVgJWlLau1C+lG4JgOFQXLpOjeYAZ7DiXUSvjo72wYtw2ep7bCAR+6plLjk3wMsN7bpxdnVJDuhtpCIm2wac7urP0VkyZ31qbmI9vq4sZc0/Acv/GN nexus@vm-ubuntu
+        image:
+          # offer: CentOS
+          # publisher: OpenLogic
+          # sku: '7.1'
+          # version: latest          
+          offer: UbuntuServer
+          publisher: Canonical
+          sku: '18.04-LTS'
+          version: latest
+        custom_data: |
+          #!/bin/bash
+          apt update
+          apt upgrade -y
+          apt install vim curl wget nginx -y
+          sed -i 's/nginx!/vm-2 !/g' /var/www/html/*
+
+    - name: "Get facts for {{ PublicIPName }} Public IP"
+      azure_rm_publicipaddress_info:
+        resource_group: "{{ RGName }}"
+        name: "{{ PublicIPName }}"
+      register: PublicIP
+
+    - set_fact:
+        output:
+          ip_address: "{{ PublicIP.publicipaddresses[0].ip_address }}"
+          id: "{{ PublicIP.publicipaddresses[0].id }}"
+          allocation_method: "{{ PublicIP.publicipaddresses[0].allocation_method }}"
+          tags: "{{ PublicIP.publicipaddresses[0].ip_tags }}"
+          location: "{{ PublicIP.publicipaddresses[0].location }}"
+          name: "{{ PublicIP.publicipaddresses[0].name }}"
+          sku: "{{ PublicIP.publicipaddresses[0].sku }}"
+          version: "{{ PublicIP.publicipaddresses[0].version }}"
+
+    
+    - name: debug
+      debug:
+        var: output

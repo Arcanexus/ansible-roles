@@ -1,0 +1,22 @@
+---
+- name: "Creating LoadBalancer {{ azure_lb_name }}"
+  azure_rm_loadbalancer:
+    resource_group: "{{ azure_lb_resourcegroup }}"
+    name: "{{ azure_lb_name }}"
+    sku: "{{ azure_lb_sku }}"
+    frontend_ip_configurations: "{{ azure_lb_frontipslist }}"
+    backend_address_pools:
+      - name: "{{ azure_lb_name }}-backendpool"
+    probes: "{{ azure_lb_probeslist }}"
+    load_balancing_rules: "{{ azure_lb_ruleslist }}"
+
+- name: "Loadbalancer infos {{ azure_lb_name }}"
+  azure_rm_loadbalancer_info:
+    resource_group: "{{ azure_lb_resourcegroup }}"
+    name: "{{ azure_lb_name }}"
+  register: azure_lb_infos
+
+- name: debug
+  debug: 
+    msg: "{{ azure_lb_infos.ansible_info.azure_loadbalancers[0].properties.backendAddressPools[0].name }}"
+

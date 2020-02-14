@@ -1,0 +1,8 @@
+---
+
+- name: "{{ RGName }} Resource Group {{ state }}"
+  azure_rm_resourcegroup:
+    name: "{{ RGName }}"
+    state: "{{ state }}"
+    location: "{{ AZLocation }}"
+    force_delete_nonempty: true

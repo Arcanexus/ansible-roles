@@ -1,0 +1,10 @@
+---
+- hosts: localhost
+  tasks:
+    - name: Role
+      include_role: 
+        name: testrole
+      vars:
+        variable2: variable2value
+        # variable1: "{{ inputvar | default('[{\"name\": \"ipconfig1\",\"primary\": true}]') }}"
+        variable1: "{{ inputvar | default(omit) }}"

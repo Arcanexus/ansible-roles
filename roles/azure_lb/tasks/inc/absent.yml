@@ -1,0 +1,6 @@
+---
+
+- name: "Deleting LoadBalancer {{ azure_lb_name }}"
+  azure_rm_loadbalancer:
+    resource_group: "{{ azure_lb_resourcegroup }}"
+    name: "{{ azure_lb_name }}"

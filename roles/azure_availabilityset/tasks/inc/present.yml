@@ -1,0 +1,7 @@
+---
+- name: "Creating AvailabilitySet {{ azure_availabilityset_name }}"
+  azure_rm_availabilityset:
+    name: "{{ azure_availabilityset_name }}"
+    resource_group: "{{ azure_availabilityset_resourcegroup }}"
+    platform_update_domain_count: "{{ azure_availabilityset_updatedomain }}"
+    platform_fault_domain_count: "{{ azure_availabilityset_faultdomain }}"

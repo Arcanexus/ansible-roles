@@ -1,0 +1,35 @@
+--- 
+- hosts: localhost
+  gather_facts: no
+    
+  environment:
+    # ARCANEXUS
+    AZURE_SUBSCRIPTION_ID: 9aa8b7cf-152a-48c2-b469-90b508a130cf
+    AZURE_CLIENT_ID: a53e4707-19ee-4ccc-a46a-c6145d4dfbfe
+    AZURE_SECRET: aOYEVj]OM-n7o]3:72VS_/LEk??Ena8y
+    AZURE_TENANT: 58543b58-814e-4197-b896-3235f359b747
+
+    # AZURE_SUBSCRIPTION_ID: "{{ AZURE_SUBSCRIPTION_ID }}"
+    # AZURE_CLIENT_ID: "{{ AZURE_CLIENT_ID }}"
+    # AZURE_SECRET: "{{ AZURE_SECRET }}"
+    # AZURE_TENANT: "{{ AZURE_TENANT }}"
+  
+    # # Engie
+    # AZURE_SUBSCRIPTION_ID: '0844ea84-7215-4829-ae82-541c7d37b798'
+    # AZURE_TENANT: "24139d14-c62c-4c47-8bdd-ce71ea1d50cf"
+    # AZURE_CLIENT_ID: "4d690c50-c399-465e-9d9c-1fe81f6d6b2d"
+    # AZURE_SECRET: "XOBsjY9x2vp7EN+szx8m7oEscZREvppT0eNExNq/ILo="
+
+  tasks:
+    - name: Variables
+      include_vars:
+        file: vars.yml
+
+    
+    - name: delete RG
+      include_role:
+        name: azure_rg_init
+      vars:
+        RGName: "{{ RG_Name }}"
+        AZLocation: "{{ AZ_Location }}"
+        state: absent

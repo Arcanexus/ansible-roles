@@ -1,0 +1,71 @@
+--- 
+- hosts: localhost
+  gather_facts: no
+    
+  environment:
+    # ARCANEXUS
+    AZURE_SUBSCRIPTION_ID: 9aa8b7cf-152a-48c2-b469-90b508a130cf
+    AZURE_CLIENT_ID: a53e4707-19ee-4ccc-a46a-c6145d4dfbfe
+    AZURE_SECRET: aOYEVj]OM-n7o]3:72VS_/LEk??Ena8y
+    AZURE_TENANT: 58543b58-814e-4197-b896-3235f359b747
+
+    # AZURE_SUBSCRIPTION_ID: "{{ AZURE_SUBSCRIPTION_ID }}"
+    # AZURE_CLIENT_ID: "{{ AZURE_CLIENT_ID }}"
+    # AZURE_SECRET: "{{ AZURE_SECRET }}"
+    # AZURE_TENANT: "{{ AZURE_TENANT }}"
+  
+    # # Engie
+    # AZURE_SUBSCRIPTION_ID: '0844ea84-7215-4829-ae82-541c7d37b798'
+    # AZURE_TENANT: "24139d14-c62c-4c47-8bdd-ce71ea1d50cf"
+    # AZURE_CLIENT_ID: "4d690c50-c399-465e-9d9c-1fe81f6d6b2d"
+    # AZURE_SECRET: "XOBsjY9x2vp7EN+szx8m7oEscZREvppT0eNExNq/ILo="
+
+  tasks:
+    - name: Cooking variables
+      include_vars:
+        file: vars.yml
+
+    - name: init RG
+      include_role:
+        name: azure_rg_init
+      vars:
+        RGName: "{{ RG_Name }}"
+        VNetName: "{{ VNet_Name }}"
+        VNetCIDR: "{{ VNet_CIDR }}"
+        SubnetName: "{{ Subnet_Name }}"
+        SubnetCIDR: "{{ Subnet_CIDR }}"
+        AZLocation: "{{ AZ_Location }}"
+        state: present
+
+    - name: Create Availability Set
+      include_role:
+        name: azure_availabilityset
+      vars:
+        azure_availabilityset_resourcegroup: "{{ RG_Name }}"
+        azure_availabilityset_name: "{{ AvSet_Name }}"
+        azure_availabilityset_updatedomain: "{{ AvSet_UpdateDomain }}"
+        azure_availabilityset_faultdomain: "{{ AvSet_FaultDomain }}"
+        state: present
+
+    - name: Create NSG
+      include_role:
+        name: azure_nsg
+      vars:
+        azure_nsg_resourcegroup: "{{ RG_Name }}"
+        azure_nsg_name: "{{ NSG_Name }}"
+        azure_nsg_ruleslist: "{{ NSG_RulesList }}"
+        state: present
+
+    - name: Create LoadBalancer
+      include_role:
+        name: azure_lb
+      vars:
+        azure_lb_resourcegroup: "{{ RG_Name }}"
+        azure_lb_name: "{{ LB_Name }}"
+        azure_lb_sku: "{{ sku }}"
+        azure_lb_frontipslist:
+        - name: "{{ LB_Name }}-frontIP"
+          subnet: "{{ azure_rg_init_output.subnet_id }}"
+        azure_lb_probeslist: "{{ LB_ProbesList }}"
+        azure_lb_ruleslist: "{{ LB_RulesList }}"
+        state: present

@@ -1,0 +1,16 @@
+---
+- name: print
+  debug: 
+    msg: "{{ variable1 | default(variable1_default) }}"
+- name: print
+  debug: 
+    msg: "{{ variable2 }}"
+
+- name: variable override
+  include_vars:
+    file: vars.yml
+
+- name: print
+  debug: 
+    msg: "{{ variable1 }}"
+  when: variable1 is defined

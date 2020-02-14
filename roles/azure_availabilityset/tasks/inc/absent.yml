@@ -1,0 +1,7 @@
+---
+
+- name: "Deleting AvailabilitySet {{ azure_availabilityset_name }}"
+  azure_rm_availabilityset:
+    name: "{{ azure_availabilityset_name }}"
+    resource_group: "{{ azure_availabilityset_resourcegroup }}"
+    state: "{{ state }}"
