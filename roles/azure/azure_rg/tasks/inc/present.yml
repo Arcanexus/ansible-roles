@@ -1,0 +1,6 @@
+---
+
+- name: "Creating NIC {{ azure_rg_name }}"
+  azure_rm_resourcegroup:
+    name: "{{ azure_rg_name }}"
+    location: "{{ azure_rg_location }}"

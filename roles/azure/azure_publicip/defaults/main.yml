@@ -1,0 +1,3 @@
+azure_publicip_allocmethod: Static
+azure_publicip_sku: Standard
+state: present

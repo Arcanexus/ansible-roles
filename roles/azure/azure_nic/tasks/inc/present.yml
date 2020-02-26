@@ -1,0 +1,39 @@
+---
+- name: "retrieve informations from Azure Load Balancer"
+  azure_rm_loadbalancer_info:
+    resource_group: "{{ azure_nic_resourcegroup }}"
+    name: "{{ azure_nic_lbname }}"
+  register: azure_nic_lbinfos
+  when: azure_nic_isloadbalanced
+
+- name: cooking variables for loadbalanced Azure VM
+  set_fact:
+    azure_nic_ipconfig:
+      - name: ipconfig1
+        load_balancer_backend_address_pools:
+          - name: "{{ azure_nic_lbinfos.ansible_info.azure_loadbalancers[0].properties.backendAddressPools[0].name }}"
+            load_balancer: "{{ azure_nic_lbname }}"
+  when: azure_nic_isloadbalanced
+
+- name: cooking variables for standalone Azure VM
+  set_fact:
+    azure_nic_ipconfig:
+      - name: ipconfig1
+        primary: True
+  when: not azure_nic_isloadbalanced
+
+- name: "Creating NIC {{ azure_nic_name }}"
+  azure_rm_networkinterface:
+    name: "{{ azure_nic_name }}"
+    resource_group: "{{ azure_nic_resourcegroup }}"
+    subnet_name: "{{ azure_nic_subnet }}"
+    virtual_network: "{{ azure_nic_vnet }}"
+    security_group:
+      name: "{{ azure_nic_securitygroup }}"
+    ip_configurations: "{{ azure_nic_ipconfig }}"
+  register: azure_nic_infos
+
+- name: Create output
+  set_fact:
+    azure_nic_output: "{{ azure_nic_infos }}"
+      

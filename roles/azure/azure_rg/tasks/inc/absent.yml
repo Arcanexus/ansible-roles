@@ -1,0 +1,8 @@
+---
+
+- name: "Removing NIC {{ azure_rg_name }} and all its content"
+  azure_rm_resourcegroup:
+    name: "{{ azure_rg_name }}"
+    state: "{{ state }}"
+    location: "{{ azure_rg_location }}"
+    force_delete_nonempty: true

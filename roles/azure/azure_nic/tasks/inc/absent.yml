@@ -1,0 +1,7 @@
+---
+
+- name: "Deleting NIC {{ azure_nic_name }}"
+  azure_rm_networkinterface:
+    name: "{{ azure_nic_name }}"
+    resource_group: "{{ azure_nic_resourcegroup }}"
+    state: "{{ state }}"

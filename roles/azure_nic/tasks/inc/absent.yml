@@ -1,7 +1,0 @@
----
-
-- name: "Deleting NSG {{ azure_nsg_RGName }}"
-  azure_rm_securitygroup:
-    resource_group: "{{ azure_nsg_RGName }}"
-    name: "{{ azure_nsg_NSGName }}"    
-    state: "{{ state }}"

@@ -5,3 +5,4 @@
     resource_group: "{{ azure_availabilityset_resourcegroup }}"
     platform_update_domain_count: "{{ azure_availabilityset_updatedomain }}"
     platform_fault_domain_count: "{{ azure_availabilityset_faultdomain }}"
+    sku: Aligned
